@@ -1,0 +1,121 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "studymentor-ai"
+version = "1.0.0"
+description = "AI-powered study assistant with personalized planning and progress tracking"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "StudyMentor AI Team", email = "team@studymentor.ai"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: FastAPI",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.32.0",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2",
+    "python-dotenv==1.0.1",
+    "sqlalchemy==2.0.34",
+    "asyncpg==0.29.0",
+    "alembic==1.13.2",
+    "psycopg2-binary==2.9.9",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "python-multipart==0.0.12",
+    "openai==1.54.0",
+    "tiktoken==0.8.0",
+    "websockets==13.1",
+    "httpx==0.27.2",
+    "email-validator==2.2.0",
+    "python-dateutil==2.9.0.post0",
+    "croniter==2.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.3",
+    "pytest-asyncio==0.23.7",
+    "pytest-cov==5.0.0",
+    "pytest-mock==3.14.0",
+    "aiosqlite==0.19.0",
+    "ruff==0.5.0",
+    "mypy==1.10.0",
+    "pre-commit==3.7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501", "B008"]
+per-file-ignores = { "tests/*" = ["S101", "S106"] }
+exclude = [".venv", "venv", "__pycache__", "build", "dist", ".git", "alembic/versions"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+indent-width = 4
+line-ending = "lf"
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+strict_optional = true
+ignore_missing_imports = true
+namespace_packages = true
+explicit_package_bases = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+module = ["sqlalchemy.*", "pydantic.*", "fastapi.*", "alembic.*", "jose.*", "passlib.*", "openai.*", "websockets.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/migrations/*", "*/alembic/*", "*/conftest.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    'if __name__ == "__main__":',
+    "if TYPE_CHECKING:",
+]

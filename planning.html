@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="api-base-url" content="https://studymentor-api.onrender.com/api">
+  <title>StudyMentor AI | Planning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="planning">
+  <main class="page-shell planning-shell">
+    <header class="page-topbar">
+      <a class="landing-brand" href="index.html">
+        <div class="brand-mark">S</div>
+        <div>
+          <p class="eyebrow">Setup</p>
+          <h1>StudyMentor AI</h1>
+        </div>
+      </a>
+      <nav class="landing-actions">
+        <a class="ghost-link" href="index.html">Landing</a>
+        <a class="ghost-link" href="dashboard.html">Dashboard</a>
+      </nav>
+    </header>
+
+    <section class="planning-layout">
+      <div class="planning-intro">
+        <p class="eyebrow">Planning Page</p>
+        <h2>Create your study blueprint.</h2>
+        <p>
+          Set your class, stream, subjects, study hours, and weak areas. This page stores your
+          study profile locally and sends you directly to the dashboard page.
+        </p>
+        <div class="planning-points">
+          <div class="point-card glass-card">
+            <span>📚</span>
+            <div>
+              <strong>Plans</strong>
+              <p>Converts your subjects into focused daily blocks.</p>
+            </div>
+          </div>
+          <div class="point-card glass-card">
+            <span>🧭</span>
+            <div>
+              <strong>Tracks</strong>
+              <p>Highlights weak areas before you start revising.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <section class="onboarding-panel glass-card">
+        <div class="panel-header">
+          <p class="eyebrow">Plans, Teaches, Tests, Tracks, Improves !!</p>
+          <h2>Build your personal study cockpit</h2>
+          <p>Choose multiple subjects and mark weak ones. The dashboard will use this profile instantly.</p>
+        </div>
+        <form id="onboardingForm" class="onboarding-form">
+          <label>
+            <span>Student name</span>
+            <input type="text" name="name" placeholder="Aarav" required>
+          </label>
+          <div class="form-grid">
+            <label>
+              <span>Class</span>
+              <select name="classLevel" required>
+                <option value="">Select class</option>
+                <option value="Class 9">Class 9</option>
+                <option value="Class 10">Class 10</option>
+                <option value="Class 11">Class 11</option>
+                <option value="Class 12">Class 12</option>
+              </select>
+            </label>
+            <label>
+              <span>Stream</span>
+              <select name="stream" id="streamSelect" required>
+                <option value="">Select stream</option>
+                <option value="Science">Science</option>
+                <option value="Commerce">Commerce</option>
+                <option value="Arts">Arts</option>
+                <option value="General">General</option>
+                <option value="Engineering">Engineering</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>Subjects</span>
+            <div id="subjectsSelect" class="checkbox-group">
+              <!-- Subjects will be populated dynamically based on stream -->
+            </div>
+            <small class="helper-text">Select one or more subjects.</small>
+          </label>
+          <div class="form-grid">
+            <label>
+              <span>Study hours per day</span>
+              <input type="number" name="studyHours" min="1" max="12" value="3" required>
+            </label>
+            <label>
+              <span>Weak subjects</span>
+              <div id="weakSubjectsSelect" class="checkbox-group">
+                <!-- Weak subjects will be populated dynamically based on selected subjects -->
+              </div>
+              <small class="helper-text">Only selected subjects can be marked as weak.</small>
+            </label>
+          </div>
+          <button class="primary-button" type="submit">Save Plan And Open Dashboard</button>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <div id="notification" class="notification hidden" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>

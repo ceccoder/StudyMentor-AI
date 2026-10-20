@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="api-base-url" content="https://studymentor-api.onrender.com/api">
+  <title>StudyMentor AI | Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="dashboard">
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">S</div>
+        <div>
+          <p class="eyebrow">Dashboard Page</p>
+          <h1>StudyMentor AI</h1>
+        </div>
+      </div>
+      <nav class="nav">
+        <button class="nav-link active" data-section="dashboard"><span>Home</span><span>Dashboard</span></button>
+        <button class="nav-link" data-section="study"><span>Learn</span><span>Study</span></button>
+        <button class="nav-link" data-section="progress"><span>Track</span><span>Progress</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <a class="ghost-link" href="planning.html">Edit plan</a>
+        <button id="themeToggle" class="ghost-button" type="button">Dark mode</button>
+        <button id="resetApp" class="text-button" type="button">Reset demo</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Dashboard Page</p>
+          <h2 id="welcomeTitle">Welcome back</h2>
+        </div>
+        <div class="topbar-actions">
+          <div class="streak-pill"><span>Fire</span><strong id="streakCount">0</strong><span>day streak</span></div>
+          <button id="startStudyBtn" class="primary-button" type="button">Start study</button>
+        </div>
+      </header>
+
+      <section id="dashboardSection" class="app-section active">
+        <div class="hero-card glass-card">
+          <div>
+            <p class="eyebrow">Plans, Teaches, Tests, Tracks, Improves !!</p>
+            <h3>Your AI-generated plan is ready</h3>
+            <p id="heroPlanText"></p>
+          </div>
+          <div class="hero-stats">
+            <div class="metric-card"><span>Focus blocks</span><strong id="focusBlocksCount">0</strong></div>
+            <div class="metric-card"><span>Weak subject focus</span><strong id="weakFocusCount">0</strong></div>
+            <div class="metric-card"><span>Planned time</span><strong id="plannedMinutes">0 min</strong></div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <article class="glass-card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Mock AI Planner</p>
+                <h3>Daily study plan</h3>
+              </div>
+              <button id="regeneratePlan" class="ghost-button" type="button">Regenerate</button>
+            </div>
+            <div id="planList" class="plan-list"></div>
+          </article>
+
+          <article class="glass-card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Momentum</p>
+                <h3>Subject progress</h3>
+              </div>
+            </div>
+            <div id="dashboardProgress" class="subject-progress-list"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="studySection" class="app-section">
+        <div class="content-grid study-layout">
+          <article class="glass-card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Teaching + Testing</p>
+                <h3>Recommended topics</h3>
+              </div>
+            </div>
+            <div id="topicList" class="topic-list"></div>
+          </article>
+
+          <article class="glass-card topic-panel">
+            <div id="topicDetails"></div>
+            <div id="quizContainer" class="quiz-container hidden"></div>
+          </article>
+        </div>
+      </section>
+
+      <section id="progressSection" class="app-section">
+        <div class="content-grid">
+          <article class="glass-card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Tracking</p>
+                <h3>Progress overview</h3>
+              </div>
+            </div>
+            <div id="progressOverview" class="progress-overview"></div>
+          </article>
+
+          <article class="glass-card">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">Improvement Flags</p>
+                <h3>Weak subject alerts</h3>
+              </div>
+            </div>
+            <div id="weakSubjectHighlights" class="weak-highlights"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="notification" class="notification hidden" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>
