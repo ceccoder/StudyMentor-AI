@@ -1,7 +1,15 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import Optional, Any, Union
+from pydantic import BaseModel, Field, ConfigDict
 from enum import Enum
+
+try:
+    import email_validator  # noqa: F401
+    from pydantic import EmailStr
+except ImportError:
+    from typing_extensions import Annotated
+    # Resilient fallback if email-validator package is missing in development environment
+    EmailStr = Annotated[str, Field(pattern=r"^[\w\.\+-]+@[\w\.-]+\.\w+$")]
 
 
 # Auth schemas
@@ -171,6 +179,22 @@ class QuizQuestionResponse(QuizQuestionBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class QuizQuestionTake(BaseModel):
+    question: str
+    options: list[str] = Field(min_length=2, max_length=6)
+
+
+class QuizTakeResponse(BaseModel):
+    id: int
+    subject: str
+    topic: str
+    difficulty: str
+    questions: list[QuizQuestionTake]
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
 class QuizBase(BaseModel):
     subject: str
     topic: str
@@ -243,7 +267,7 @@ class AIContentRequest(BaseModel):
 
 
 class AIContentResponse(BaseModel):
-    content: str
+    content: Any
     tokens_used: int
     model_used: str
 

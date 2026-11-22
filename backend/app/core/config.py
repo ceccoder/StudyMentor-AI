@@ -16,10 +16,16 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Database
-    DATABASE_URL: str = Field(validation_alias="DATABASE_URL")
+    DATABASE_URL: str = Field(
+        default="postgresql+asyncpg://postgres:postgres@localhost:5432/studymentor",
+        validation_alias="DATABASE_URL"
+    )
     
     # JWT Auth
-    SECRET_KEY: str = Field(validation_alias="SECRET_KEY")
+    SECRET_KEY: str = Field(
+        default="studymentor-dev-secret-key-change-in-production-min-32-chars",
+        validation_alias="SECRET_KEY"
+    )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
@@ -45,6 +51,20 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:5500"]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def validate_cors_origins(cls, v):
+        if isinstance(v, str):
+            import json
+            s = v.strip()
+            if s.startswith("[") and s.endswith("]"):
+                try:
+                    return json.loads(s)
+                except Exception:
+                    pass
+            return [x.strip() for x in s.split(",") if x.strip()]
+        return v
     
     # Rate limiting
     RATE_LIMIT_REQUESTS: int = 100

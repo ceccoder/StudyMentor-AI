@@ -24,6 +24,7 @@
         <button class="nav-link active" data-section="dashboard"><span>Home</span><span>Dashboard</span></button>
         <button class="nav-link" data-section="study"><span>Learn</span><span>Study</span></button>
         <button class="nav-link" data-section="progress"><span>Track</span><span>Progress</span></button>
+        <button class="nav-link" data-section="chat"><span>Ask AI</span><span>AI Mentor</span></button>
       </nav>
       <div class="sidebar-footer">
         <a class="ghost-link" href="planning.html">Edit plan</a>
@@ -40,6 +41,7 @@
         </div>
         <div class="topbar-actions">
           <div class="streak-pill"><span>Fire</span><strong id="streakCount">0</strong><span>day streak</span></div>
+          <button id="authBtn" class="ghost-button" type="button">Sign in</button>
           <button id="startStudyBtn" class="primary-button" type="button">Start study</button>
         </div>
       </header>
@@ -124,10 +126,61 @@
           </article>
         </div>
       </section>
+
+      <section id="chatSection" class="app-section">
+        <article class="glass-card chat-card">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Interactive Learning Assistant</p>
+              <h3>StudyMentor AI Chat</h3>
+            </div>
+            <span class="badge" id="chatBadge">AI Online</span>
+          </div>
+          <div id="chatMessages" class="chat-messages">
+            <div class="chat-msg assistant">
+              <strong>StudyMentor AI:</strong> Hi! I'm your AI study assistant. Ask me questions about your subjects, request topic summaries, or practice problem walkthroughs!
+            </div>
+          </div>
+          <form id="chatForm" class="chat-form">
+            <input type="text" id="chatInput" placeholder="Ask a question about your topics..." autocomplete="off" required>
+            <button type="submit" class="primary-button">Send</button>
+          </form>
+        </article>
+      </section>
     </main>
   </div>
 
   <div id="notification" class="notification hidden" aria-live="polite"></div>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="authModalTitle">Sign In</h3>
+        <button id="closeAuthModal" class="ghost-button" type="button">✕</button>
+      </div>
+      <form id="authForm" class="auth-form">
+        <div id="nameFieldGroup" class="form-group hidden">
+          <label>Full Name</label>
+          <input type="text" id="authName" placeholder="Aarav Sharma" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="authEmail" required placeholder="student@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="authPassword" required minlength="8" placeholder="At least 8 characters" autocomplete="current-password">
+        </div>
+        <button type="submit" id="authSubmitBtn" class="primary-button" style="width: 100%; margin-top: 14px;">Sign In</button>
+      </form>
+      <div class="auth-toggle">
+        <span id="authToggleText">Don't have an account?</span>
+        <button type="button" id="authToggleBtn" class="text-button">Register</button>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

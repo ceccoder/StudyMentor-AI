@@ -5,7 +5,6 @@ services:
   - type: web
     name: studymentor-api
     runtime: python
-    repo: https://github.com/YOUR_USERNAME/StudyMentor-AI
     branch: main
     rootDir: backend
     buildCommand: |
@@ -30,22 +29,17 @@ services:
       - key: DEBUG
         value: "false"
       - key: CORS_ORIGINS
-        value: '["https://YOUR_FRONTEND_DOMAIN.onrender.com", "https://studymentor-ai-frontend.onrender.com"]'
+        value: '["https://studymentor-frontend.onrender.com"]'
     autoDeploy: true
 
   # Frontend Static Site
   - type: web
     name: studymentor-frontend
     runtime: static
-    repo: https://github.com/YOUR_USERNAME/StudyMentor-AI
     branch: main
     rootDir: .
     buildCommand: ""
     staticPublishPath: .
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
     headers:
       - path: /*
         name: X-Frame-Options

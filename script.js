@@ -2,6 +2,10 @@ const STORAGE_KEY = "studymentor-ai-state";
 const THEME_KEY = "studymentor-ai-theme";
 // API base URL - auto-detect based on environment
 const API_BASE = (() => {
+  // If running on same origin with backend
+  if (window.location.port === "8000") {
+    return `${window.location.origin}/api`;
+  }
   // Check if we're on Render (production)
   if (window.location.hostname.includes('onrender.com') || window.location.hostname.includes('render.com')) {
     return 'https://studymentor-api.onrender.com/api';
@@ -49,6 +53,7 @@ if (page === "dashboard") {
 }
 
 function initPlanningPage() {
+  initAuth();
   const onboardingForm = document.getElementById("onboardingForm");
   const streamSelect = document.getElementById("streamSelect");
   const subjectsContainer = document.getElementById("subjectsSelect");
@@ -94,21 +99,38 @@ function initPlanningPage() {
     try {
       const token = localStorage.getItem("access_token");
       if (token) {
-        const response = await fetch(`${API_BASE}/profile`, {
+        const payload = {
+          name: profile.name,
+          class_level: profile.classLevel,
+          stream: profile.stream,
+          study_hours_per_day: profile.studyHours,
+          subjects: profile.subjects,
+          weak_subjects: profile.weakSubjects
+        };
+        let response = await fetch(`${API_BASE}/profile`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
           },
-          body: JSON.stringify(profile)
+          body: JSON.stringify(payload)
         });
+        if (response.status === 400) {
+          response = await fetch(`${API_BASE}/profile`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+          });
+        }
         if (response.ok) {
-          window.location.href = "dashboard.html";
-          return;
+          console.log("Profile saved to backend successfully.");
         }
       }
     } catch (error) {
-      console.log("Backend not available, using localStorage fallback");
+      console.log("Backend not available, using localStorage fallback", error);
     }
 
     // Fallback to localStorage
@@ -185,9 +207,13 @@ function initDashboardPage() {
     sections: {
       dashboard: document.getElementById("dashboardSection"),
       study: document.getElementById("studySection"),
-      progress: document.getElementById("progressSection")
+      progress: document.getElementById("progressSection"),
+      chat: document.getElementById("chatSection")
     }
   };
+
+  initAuth();
+  initChatSection();
 
   elements.startStudyBtn.addEventListener("click", () => switchSection("study", elements));
   elements.regeneratePlan.addEventListener("click", () => refreshPlanFromAI(elements));
@@ -377,13 +403,27 @@ async function generateAIExplanation(subject, elements) {
   
   try {
     showNotification("Generating AI explanation...");
-    // This would call a backend endpoint - for now use WebSocket or a new REST endpoint
-    // We'll simulate with a placeholder since the backend doesn't have a dedicated explanation endpoint yet
+    const topic = getTopicData(subject);
     const explanation = await fetchExplanation(subject, topic.title);
     if (explanation) {
-      // Update the UI with AI-generated explanation
       const descEl = elements.topicDetails.querySelector(".topic-description");
-      if (descEl) descEl.textContent = explanation.overview || "Explanation generated";
+      if (descEl) {
+        if (typeof explanation === "object" && explanation.overview) {
+          let html = `<p><strong>Overview:</strong> ${explanation.overview}</p>`;
+          if (explanation.key_concepts && explanation.key_concepts.length) {
+            html += `<p><strong>Key Concepts:</strong></p><ul>${explanation.key_concepts.map(c => `<li>${c}</li>`).join("")}</ul>`;
+          }
+          if (explanation.formulas_rules && explanation.formulas_rules.length) {
+            html += `<p><strong>Rules / Formulas:</strong></p><ul>${explanation.formulas_rules.map(r => `<li>${r}</li>`).join("")}</ul>`;
+          }
+          if (explanation.practice_tip) {
+            html += `<p><strong>Practice Tip:</strong> ${explanation.practice_tip}</p>`;
+          }
+          descEl.innerHTML = html;
+        } else {
+          descEl.textContent = typeof explanation === "string" ? explanation : JSON.stringify(explanation);
+        }
+      }
       showNotification("AI explanation generated!");
     } else {
       showNotification("AI explanation feature coming soon. Using fallback content.");
@@ -405,10 +445,28 @@ async function generateAIPractice(subject, elements) {
   
   try {
     showNotification("Generating AI practice sprint...");
+    const topic = getTopicData(subject);
     const practice = await fetchPracticeSprint(subject, topic.title);
     if (practice) {
       const practiceEl = elements.topicDetails.querySelector(".plan-card p");
-      if (practiceEl) practiceEl.textContent = JSON.stringify(practice, null, 2);
+      if (practiceEl) {
+        if (typeof practice === "object" && practice.main_practice) {
+          let html = "";
+          if (practice.warmup && practice.warmup.length) {
+            html += `<strong>Warm-up:</strong> ${practice.warmup.join(", ")}<br><br>`;
+          }
+          html += `<strong>Exercises:</strong><br>` + practice.main_practice.map((p, i) => 
+            `<div>• ${p.description || p} ${p.hint ? `<em>(Hint: ${p.hint})</em>` : ""}</div>`
+          ).join("");
+          if (practice.challenge) {
+            const ch = practice.challenge.description || practice.challenge;
+            html += `<br><br><strong>Challenge:</strong> ${ch}`;
+          }
+          practiceEl.innerHTML = html;
+        } else {
+          practiceEl.textContent = typeof practice === "string" ? practice : JSON.stringify(practice, null, 2);
+        }
+      }
       showNotification("AI practice sprint generated!");
     } else {
       showNotification("AI practice feature coming soon. Using fallback content.");
@@ -758,9 +816,15 @@ async function fetchQuiz(subject, topic, difficulty = "medium", numQuestions = 5
 // Fetch AI-generated explanation
 async function fetchExplanation(subject, topic) {
   try {
-    // This would call a dedicated explanation endpoint
-    // For now, return a placeholder that triggers AI generation
-    return null;
+    const res = await apiRequest("/ai/explanation", {
+      method: "POST",
+      body: JSON.stringify({
+        generation_type: "explanation",
+        subject,
+        topic: topic || "Fundamentals"
+      })
+    });
+    return res ? res.content : null;
   } catch (error) {
     console.error("Failed to fetch explanation:", error);
     return null;
@@ -770,8 +834,15 @@ async function fetchExplanation(subject, topic) {
 // Fetch AI-generated practice sprint
 async function fetchPracticeSprint(subject, topic) {
   try {
-    // This would call a dedicated practice endpoint
-    return null;
+    const res = await apiRequest("/ai/practice", {
+      method: "POST",
+      body: JSON.stringify({
+        generation_type: "practice",
+        subject,
+        topic: topic || "Fundamentals"
+      })
+    });
+    return res ? res.content : null;
   } catch (error) {
     console.error("Failed to fetch practice:", error);
     return null;
@@ -804,4 +875,186 @@ function getDayDifference(start, end) {
   const startDate = new Date(`${start}T00:00:00`);
   const endDate = new Date(`${end}T00:00:00`);
   return Math.round((endDate - startDate) / 86400000);
+}
+
+// Auth management
+let authMode = "login"; // "login" or "register"
+
+function initAuth() {
+  const authModal = document.getElementById("authModal");
+  const authBtn = document.getElementById("authBtn");
+  const closeAuthModal = document.getElementById("closeAuthModal");
+  const authToggleBtn = document.getElementById("authToggleBtn");
+  const authForm = document.getElementById("authForm");
+
+  if (authBtn) {
+    authBtn.addEventListener("click", () => {
+      if (localStorage.getItem("access_token")) {
+        handleLogout();
+      } else {
+        openAuthModal("login");
+      }
+    });
+  }
+
+  if (closeAuthModal) {
+    closeAuthModal.addEventListener("click", closeAuthModalWindow);
+  }
+
+  if (authToggleBtn) {
+    authToggleBtn.addEventListener("click", () => {
+      authMode = authMode === "login" ? "register" : "login";
+      updateAuthModalUI();
+    });
+  }
+
+  if (authForm) {
+    authForm.addEventListener("submit", handleAuthSubmit);
+  }
+
+  checkAuthStatus();
+}
+
+function openAuthModal(mode = "login") {
+  authMode = mode;
+  updateAuthModalUI();
+  const modal = document.getElementById("authModal");
+  if (modal) modal.classList.remove("hidden");
+}
+
+function closeAuthModalWindow() {
+  const modal = document.getElementById("authModal");
+  if (modal) modal.classList.add("hidden");
+}
+
+function updateAuthModalUI() {
+  const title = document.getElementById("authModalTitle");
+  const submitBtn = document.getElementById("authSubmitBtn");
+  const toggleText = document.getElementById("authToggleText");
+  const toggleBtn = document.getElementById("authToggleBtn");
+  const nameGroup = document.getElementById("nameFieldGroup");
+
+  if (authMode === "login") {
+    if (title) title.textContent = "Sign In";
+    if (submitBtn) submitBtn.textContent = "Sign In";
+    if (toggleText) toggleText.textContent = "Don't have an account?";
+    if (toggleBtn) toggleBtn.textContent = "Register";
+    if (nameGroup) nameGroup.classList.add("hidden");
+  } else {
+    if (title) title.textContent = "Create Account";
+    if (submitBtn) submitBtn.textContent = "Register";
+    if (toggleText) toggleText.textContent = "Already have an account?";
+    if (toggleBtn) toggleBtn.textContent = "Sign In";
+    if (nameGroup) nameGroup.classList.remove("hidden");
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById("authEmail").value.trim();
+  const password = document.getElementById("authPassword").value;
+  const nameEl = document.getElementById("authName");
+  const fullName = nameEl ? nameEl.value.trim() : "";
+
+  try {
+    showNotification("Authenticating...");
+    const endpoint = authMode === "login" ? "/auth/login" : "/auth/register";
+    const body = authMode === "login"
+      ? { email, password }
+      : { email, password, full_name: fullName || "Student" };
+
+    const res = await apiRequest(endpoint, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+
+    if (authMode === "register") {
+      await apiRequest("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+    }
+
+    try {
+      const tokenRes = await apiRequest("/auth/refresh", { method: "POST" });
+      if (tokenRes && tokenRes.access_token) {
+        localStorage.setItem("access_token", tokenRes.access_token);
+      }
+    } catch (_) {}
+
+    closeAuthModalWindow();
+    showNotification(`Welcome, ${res.full_name || "Student"}!`);
+    checkAuthStatus();
+  } catch (err) {
+    showNotification(err.message || "Authentication failed.");
+  }
+}
+
+async function handleLogout() {
+  try {
+    await apiRequest("/auth/logout", { method: "POST" });
+  } catch (_) {}
+  localStorage.removeItem("access_token");
+  showNotification("Signed out.");
+  checkAuthStatus();
+}
+
+async function checkAuthStatus() {
+  const authBtn = document.getElementById("authBtn");
+  if (!authBtn) return;
+
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    authBtn.textContent = "Sign in";
+    return;
+  }
+
+  try {
+    const user = await apiRequest("/auth/me");
+    authBtn.textContent = `${user.full_name.split(" ")[0]} (Logout)`;
+  } catch (_) {
+    localStorage.removeItem("access_token");
+    authBtn.textContent = "Sign in";
+  }
+}
+
+// AI Mentor Chat Section
+function initChatSection() {
+  const form = document.getElementById("chatForm");
+  const input = document.getElementById("chatInput");
+  const messagesContainer = document.getElementById("chatMessages");
+  if (!form || !input || !messagesContainer) return;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const query = input.value.trim();
+    if (!query) return;
+
+    input.value = "";
+    const userMsg = document.createElement("div");
+    userMsg.className = "chat-msg user";
+    userMsg.textContent = query;
+    messagesContainer.appendChild(userMsg);
+
+    const botMsg = document.createElement("div");
+    botMsg.className = "chat-msg assistant";
+    botMsg.innerHTML = "<em>Thinking...</em>";
+    messagesContainer.appendChild(botMsg);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    try {
+      const res = await apiRequest("/ai/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          generation_type: "explanation",
+          subject: currentTopic || "General",
+          context: { message: query }
+        })
+      });
+      botMsg.innerHTML = `<strong>StudyMentor AI:</strong> ${res.content || "I have processed your query."}`;
+    } catch (err) {
+      botMsg.innerHTML = `<strong>StudyMentor AI:</strong> ${err.message || "Offline: AI features connect when server is running."}`;
+    }
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  });
 }

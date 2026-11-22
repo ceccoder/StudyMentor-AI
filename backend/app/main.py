@@ -1,6 +1,7 @@
 """
 StudyMentor AI - Main FastAPI Application Entry Point
 """
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -98,9 +99,34 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 
-# Serve static files for frontend (if needed)
-# from fastapi.staticfiles import StaticFiles
-# app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# Serve static files for frontend
+frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if os.path.isfile(os.path.join(frontend_dir, "index.html")):
+    from fastapi.responses import FileResponse
+
+    @app.get("/", include_in_schema=False)
+    async def serve_root():
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.get("/index.html", include_in_schema=False)
+    async def serve_index():
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    @app.get("/planning.html", include_in_schema=False)
+    async def serve_planning():
+        return FileResponse(os.path.join(frontend_dir, "planning.html"))
+
+    @app.get("/dashboard.html", include_in_schema=False)
+    async def serve_dashboard():
+        return FileResponse(os.path.join(frontend_dir, "dashboard.html"))
+
+    @app.get("/style.css", include_in_schema=False)
+    async def serve_css():
+        return FileResponse(os.path.join(frontend_dir, "style.css"), media_type="text/css")
+
+    @app.get("/script.js", include_in_schema=False)
+    async def serve_js():
+        return FileResponse(os.path.join(frontend_dir, "script.js"), media_type="application/javascript")
 
 
 if __name__ == "__main__":

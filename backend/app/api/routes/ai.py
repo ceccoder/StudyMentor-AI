@@ -95,27 +95,36 @@ async def chat_completion(
     current_user: User = Depends(get_current_user)
 ):
     """Non-streaming chat completion (for simple requests)."""
-    from app.schemas.schemas import WSChatMessage
+    message = request.context.get("message", "") if request.context else ""
+    messages = [{"role": "user", "content": message}]
     
-    messages = [{"role": "user", "content": request.context.get("message", "") if request.context else ""}]
+    if not ai_service.client:
+        return AIContentResponse(
+            content="AI service is running in offline mode. Please configure GROQ_API_KEY or OPENAI_API_KEY for live AI chat.",
+            tokens_used=0,
+            model_used="fallback"
+        )
     
-    # For non-streaming, we'll use a simple completion
-    import json
-    response = await ai_service.client.chat.completions.create(
-        model=ai_service.model,
-        messages=[
-            {"role": "system", "content": "You are StudyMentor AI, an expert study assistant. Be encouraging, clear, and concise. Use examples."},
-            *messages
-        ],
-        max_tokens=ai_service.max_tokens,
-        temperature=0.7
-    )
-    
-    content = response.choices[0].message.content
-    tokens_used = response.usage.total_tokens if response.usage else 0
+    try:
+        response = await ai_service.client.chat.completions.create(
+            model=ai_service.model,
+            messages=[
+                {"role": "system", "content": "You are StudyMentor AI, an expert study assistant. Be encouraging, clear, and concise. Use examples."},
+                *messages
+            ],
+            max_tokens=ai_service.max_tokens,
+            temperature=0.7
+        )
+        content = response.choices[0].message.content or ""
+        tokens_used = response.usage.total_tokens if response.usage else 0
+        model_used = ai_service.model
+    except Exception as e:
+        content = f"Unable to generate response: {str(e)}"
+        tokens_used = 0
+        model_used = "error"
     
     return AIContentResponse(
         content=content,
         tokens_used=tokens_used,
-        model_used=ai_service.model
+        model_used=model_used
     )

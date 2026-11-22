@@ -1,6 +1,11 @@
 """
 Test Configuration and Fixtures
 """
+import os
+os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-purposes-only-32chars")
+os.environ.setdefault("OPENAI_API_KEY", "test-key")
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -14,13 +19,18 @@ from app.models.models import User, StudyProfile, SubjectProgress
 from app.core.security import get_password_hash, create_access_token
 
 
-# Test database URL (in-memory SQLite for testing)
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# Test database URL (uses PostgreSQL when provided in CI/env, falls back to SQLite)
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL") or os.environ.get("DATABASE_URL") or "sqlite+aiosqlite:///:memory:"
+
+test_engine_kwargs = {}
+if TEST_DATABASE_URL.startswith("sqlite"):
+    test_engine_kwargs = {"connect_args": {"check_same_thread": False}, "poolclass": StaticPool}
+else:
+    test_engine_kwargs = {"pool_pre_ping": True}
 
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+    **test_engine_kwargs
 )
 
 TestAsyncSessionLocal = async_sessionmaker(
@@ -57,9 +67,9 @@ async def db_session():
 
 
 @pytest_asyncio.fixture
-async def client(db_session):
+async def client():
     """Create test client with overridden database."""
-    app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_db] = override_get_db
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac

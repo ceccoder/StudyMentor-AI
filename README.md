@@ -8,25 +8,25 @@ A full-stack AI-powered study assistant with personalized planning, quizzes, pro
 StudyMentor AI/
 ├── backend/                 # FastAPI Backend
 │   ├── app/
-│   │   ├── api/routes/      # API endpoints
+│   │   ├── api/routes/      # API endpoints (auth, study, quiz, ai, ws)
 │   │   ├── core/            # Config, security, dependencies
 │   │   ├── db/              # Database session & models
 │   │   ├── models/          # SQLAlchemy models
 │   │   ├── schemas/         # Pydantic schemas
-│   │   ├── services/        # AI service (OpenAI)
-│   │   └── main.py          # FastAPI app entry point
+│   │   ├── services/        # AI service (Groq & OpenAI)
+│   │   └── main.py          # FastAPI app entry point (serves API & frontend)
 │   ├── alembic/             # Database migrations
 │   ├── tests/               # Pytest test suite
 │   ├── requirements.txt     # Python dependencies
 │   ├── Dockerfile           # Container configuration
 │   └── .env.example         # Environment template
-├── frontend/                # Vanilla JS Frontend
-│   ├── index.html           # Landing page
-│   ├── planning.html        # Study profile setup
-│   ├── dashboard.html       # Main dashboard
-│   ├── style.css            # Styling
-│   └── script.js            # Frontend logic
+├── index.html               # Landing page
+├── planning.html            # Study profile setup & Auth modal
+├── dashboard.html           # Main dashboard & AI chat
+├── style.css                # Styling & responsive design
+├── script.js                # Frontend logic & API integration
 ├── docker-compose.yml       # Multi-container orchestration
+├── render.yaml              # Render.com deployment blueprint
 └── README.md
 ```
 
@@ -64,18 +64,17 @@ StudyMentor AI/
 
 ```bash
 # Clone and navigate
-cd StudyMentor AI
+cd StudyMentor-AI
 
-# Copy environment template (already includes a working Groq API key)
+# Copy environment template
 cp backend/.env.example backend/.env
 
-# The .env.example already includes a working Groq API key!
-# You can optionally add your own OpenAI key for GPT models
+# Add your GROQ_API_KEY (free from https://console.groq.com/keys) or OPENAI_API_KEY to backend/.env
 
 # Start all services
 docker-compose up -d
 
-# Backend available at http://localhost:8000
+# Application and API docs available at http://localhost:8000
 # API docs at http://localhost:8000/docs
 ```
 
@@ -104,9 +103,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ### Frontend
 
-Open `frontend/index.html` directly in browser, or serve with any static server:
+The backend automatically serves the frontend at `http://localhost:8000/`. Alternatively, you can open `index.html` directly in your browser or run any static file server:
 ```bash
-cd StudyMentor AI/frontend
 python -m http.server 5500
 # Visit http://localhost:5500
 ```
@@ -224,14 +222,12 @@ pytest tests/ -v --cov=app --cov-report=term-missing
 
 ## Frontend-Backend Integration
 
-The frontend (`script.js`) currently uses `localStorage` for demo mode. To connect to backend:
-
-1. Update `script.js` to use `fetch` API calls to `/api/*` endpoints
-2. Handle authentication flow (login/register → store token)
-3. Replace localStorage operations with API calls
-4. Add WebSocket connection for real-time features
-
-See `frontend/script.js` for the current localStorage implementation that can be adapted.
+The application features full hybrid frontend-backend integration:
+1. **Authentication**: JWT token generation and storage via `/api/auth/register` and `/api/auth/login`, with httpOnly cookie fallback.
+2. **Profile & Progress**: Automatic profile synchronization with `/api/profile` and mastery tracking via `/api/progress`.
+3. **AI Generation**: Personalized study plan generation (`/api/plan/generate`), dynamic quizzes (`/api/quiz/generate`), topic explanations (`/api/ai/explanation`), and practice sprints (`/api/ai/practice`).
+4. **Interactive Chat**: Built-in AI mentor chat drawer communicating directly with `/api/ai/chat`.
+5. **Offline Resiliency**: Transparent fallback to `localStorage` when running offline or without an active backend.
 
 ## Contributing
 

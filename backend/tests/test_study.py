@@ -59,20 +59,27 @@ class TestStudyProfileEndpoints:
         assert data["subjects"] == ["Math", "Physics", "Chemistry"]
 
     @pytest.mark.asyncio
-    async def test_get_profile_not_found(self, client: AsyncClient, auth_headers, test_user):
+    async def test_get_profile_not_found(self, client: AsyncClient, db_session):
         """Test getting profile when none exists."""
-        # Need a fresh user without profile
-        from app.main import app
-        from app.db.session import get_db
-        from app.core.security import create_access_token
-        
-        # Create a new user
         from app.models.models import User
-        from app.core.security import get_password_hash
-        from sqlalchemy import select
+        from app.core.security import get_password_hash, create_access_token
         
-        async with client.app.state.db_session() as db:  # This won't work, need different approach
-            pass
+        user_without_profile = User(
+            email="noprofile@example.com",
+            hashed_password=get_password_hash("testpassword123"),
+            full_name="No Profile User",
+            role="student",
+            is_active=True
+        )
+        db_session.add(user_without_profile)
+        await db_session.commit()
+        await db_session.refresh(user_without_profile)
+        
+        token = create_access_token(data={"sub": user_without_profile.id, "email": user_without_profile.email})
+        headers = {"Authorization": f"Bearer {token}", "Cookie": f"access_token={token}"}
+        
+        response = await client.get("/api/profile", headers=headers)
+        assert response.status_code == 404
 
     @pytest.mark.asyncio
     async def test_update_profile(self, client: AsyncClient, auth_headers, test_profile):

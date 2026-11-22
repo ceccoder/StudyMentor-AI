@@ -23,6 +23,7 @@
       <nav class="landing-actions">
         <a class="ghost-link" href="index.html">Landing</a>
         <a class="ghost-link" href="dashboard.html">Dashboard</a>
+        <button id="authBtn" class="ghost-button" type="button">Sign in</button>
       </nav>
     </header>
 
@@ -113,6 +114,36 @@
   </main>
 
   <div id="notification" class="notification hidden" aria-live="polite"></div>
+
+  <!-- Auth Modal -->
+  <div id="authModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="authModalTitle">Sign In</h3>
+        <button id="closeAuthModal" class="ghost-button" type="button">✕</button>
+      </div>
+      <form id="authForm" class="auth-form">
+        <div id="nameFieldGroup" class="form-group hidden">
+          <label>Full Name</label>
+          <input type="text" id="authName" placeholder="Aarav Sharma" autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="authEmail" required placeholder="student@example.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="authPassword" required minlength="8" placeholder="At least 8 characters" autocomplete="current-password">
+        </div>
+        <button type="submit" id="authSubmitBtn" class="primary-button" style="width: 100%; margin-top: 14px;">Sign In</button>
+      </form>
+      <div class="auth-toggle">
+        <span id="authToggleText">Don't have an account?</span>
+        <button type="button" id="authToggleBtn" class="text-button">Register</button>
+      </div>
+    </div>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
@@ -9,7 +9,7 @@ from app.core.dependencies import get_current_user
 from app.models.models import User, StudyProfile, SubjectProgress, StudyPlan, StudyPlanBlock, UserStreak
 from app.schemas.schemas import (
     StudyProfileCreate, StudyProfileUpdate, StudyProfileResponse,
-    SubjectProgressResponse, StudyPlanResponse, DailyPlanResponse
+    SubjectProgressResponse, SubjectProgressUpdate, StudyPlanResponse, DailyPlanResponse
 )
 from app.services.ai_service import ai_service
 
@@ -244,13 +244,15 @@ async def generate_plan(
     
     # Deactivate old plans for this date
     await db.execute(
-        select(StudyPlan).where(
+        update(StudyPlan)
+        .where(
             and_(
                 StudyPlan.user_id == current_user.id,
                 func.date(StudyPlan.date) == target_date,
                 StudyPlan.is_active == True
             )
-        ).update({"is_active": False})
+        )
+        .values(is_active=False)
     )
     
     # Create new plan

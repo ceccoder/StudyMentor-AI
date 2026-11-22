@@ -11,7 +11,7 @@ from app.db.session import get_db
 from app.core.dependencies import get_current_user
 from app.models.models import User, Quiz, QuizAttempt, SubjectProgress
 from app.schemas.schemas import (
-    QuizCreate, QuizResponse, QuizAttemptCreate, QuizAttemptResponse,
+    QuizCreate, QuizResponse, QuizTakeResponse, QuizAttemptCreate, QuizAttemptResponse,
     QuizResultResponse, QuizQuestionCreate
 )
 from app.services.ai_service import ai_service
@@ -121,7 +121,7 @@ async def list_quizzes(
     return result.scalars().all()
 
 
-@router.get("/{quiz_id}", response_model=QuizResponse)
+@router.get("/{quiz_id}", response_model=QuizTakeResponse)
 async def get_quiz(
     quiz_id: int,
     db: AsyncSession = Depends(get_db),
@@ -134,7 +134,19 @@ async def get_quiz(
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not found")
     
-    return quiz
+    # Strip correct answers and explanations so client cannot cheat before submitting
+    sanitized_questions = [
+        {"question": q["question"], "options": q["options"]}
+        for q in quiz.questions
+    ]
+    return QuizTakeResponse(
+        id=quiz.id,
+        subject=quiz.subject,
+        topic=quiz.topic,
+        difficulty=quiz.difficulty,
+        questions=sanitized_questions,
+        created_at=quiz.created_at
+    )
 
 
 @router.post("/{quiz_id}/attempt", response_model=QuizResultResponse)
