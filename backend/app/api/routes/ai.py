@@ -2,12 +2,12 @@
 AI Content Generation API Routes
 """
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user_optional
 from app.models.models import User, SubjectProgress
 from app.schemas.schemas import AIContentRequest, AIContentResponse
 from app.services.ai_service import ai_service
@@ -16,21 +16,27 @@ from app.services.ai_service import ai_service
 router = APIRouter(prefix="/ai", tags=["AI Generation"])
 
 
+def _extract_keys(request: Request):
+    return (
+        request.headers.get("x-groq-api-key"),
+        request.headers.get("x-openai-api-key")
+    )
+
+
 @router.post("/explanation", response_model=AIContentResponse)
 async def generate_explanation(
-    request: AIContentRequest,
+    request_data: AIContentRequest,
+    raw_request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Generate an AI explanation for a topic."""
-    
-    # Get user's progress for context
+    """Generate an AI explanation for a topic (accessible to guests and authenticated users)."""
     mastery = 0
     weak_areas = []
-    if request.subject:
+    if current_user and request_data.subject:
         result = await db.execute(
             select(SubjectProgress).where(
-                and_(SubjectProgress.user_id == current_user.id, SubjectProgress.subject == request.subject)
+                and_(SubjectProgress.user_id == current_user.id, SubjectProgress.subject == request_data.subject)
             )
         )
         progress = result.scalar_one_or_none()
@@ -38,13 +44,16 @@ async def generate_explanation(
             mastery = progress.mastery_percentage
             weak_areas = progress.weak_areas
     
-    context = request.context or {}
+    context = request_data.context or {}
     context.update({"mastery": mastery, "weak_areas": weak_areas})
     
+    groq_k, openai_k = _extract_keys(raw_request)
     ai_result = await ai_service.generate_explanation(
-        subject=request.subject,
-        topic=request.topic or "General",
-        level=context.get("level", "high_school")
+        subject=request_data.subject,
+        topic=request_data.topic or "Fundamentals",
+        level=context.get("level", "high_school"),
+        custom_groq_key=groq_k,
+        custom_openai_key=openai_k
     )
     
     return AIContentResponse(
@@ -56,18 +65,18 @@ async def generate_explanation(
 
 @router.post("/practice", response_model=AIContentResponse)
 async def generate_practice(
-    request: AIContentRequest,
+    request_data: AIContentRequest,
+    raw_request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     """Generate an AI practice sprint for a topic."""
-    
     mastery = 0
     weak_areas = []
-    if request.subject:
+    if current_user and request_data.subject:
         result = await db.execute(
             select(SubjectProgress).where(
-                and_(SubjectProgress.user_id == current_user.id, SubjectProgress.subject == request.subject)
+                and_(SubjectProgress.user_id == current_user.id, SubjectProgress.subject == request_data.subject)
             )
         )
         progress = result.scalar_one_or_none()
@@ -75,11 +84,14 @@ async def generate_practice(
             mastery = progress.mastery_percentage
             weak_areas = progress.weak_areas
     
+    groq_k, openai_k = _extract_keys(raw_request)
     ai_result = await ai_service.generate_practice_sprint(
-        subject=request.subject,
-        topic=request.topic or "General",
+        subject=request_data.subject,
+        topic=request_data.topic or "Fundamentals",
         mastery=mastery,
-        weak_areas=weak_areas
+        weak_areas=weak_areas,
+        custom_groq_key=groq_k,
+        custom_openai_key=openai_k
     )
     
     return AIContentResponse(
@@ -91,40 +103,24 @@ async def generate_practice(
 
 @router.post("/chat")
 async def chat_completion(
-    request: AIContentRequest,
-    current_user: User = Depends(get_current_user)
+    request_data: AIContentRequest,
+    raw_request: Request,
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Non-streaming chat completion (for simple requests)."""
-    message = request.context.get("message", "") if request.context else ""
+    """Chat completion with StudyMentor AI tutor."""
+    message = request_data.context.get("message", "") if request_data.context else ""
     messages = [{"role": "user", "content": message}]
     
-    if not ai_service.client:
-        return AIContentResponse(
-            content="AI service is running in offline mode. Please configure GROQ_API_KEY or OPENAI_API_KEY for live AI chat.",
-            tokens_used=0,
-            model_used="fallback"
-        )
-    
-    try:
-        response = await ai_service.client.chat.completions.create(
-            model=ai_service.model,
-            messages=[
-                {"role": "system", "content": "You are StudyMentor AI, an expert study assistant. Be encouraging, clear, and concise. Use examples."},
-                *messages
-            ],
-            max_tokens=ai_service.max_tokens,
-            temperature=0.7
-        )
-        content = response.choices[0].message.content or ""
-        tokens_used = response.usage.total_tokens if response.usage else 0
-        model_used = ai_service.model
-    except Exception as e:
-        content = f"Unable to generate response: {str(e)}"
-        tokens_used = 0
-        model_used = "error"
+    groq_k, openai_k = _extract_keys(raw_request)
+    chat_result = await ai_service.chat(
+        messages=messages,
+        context=request_data.context,
+        custom_groq_key=groq_k,
+        custom_openai_key=openai_k
+    )
     
     return AIContentResponse(
-        content=content,
-        tokens_used=tokens_used,
-        model_used=model_used
+        content=chat_result["content"],
+        tokens_used=chat_result.get("tokens_used", 0),
+        model_used=chat_result.get("model_used", "ai-mentor")
     )

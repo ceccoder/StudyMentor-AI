@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="api-base-url" content="https://studymentor-api.onrender.com/api">
   <title>StudyMentor AI | Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,31 +15,36 @@
       <div class="brand">
         <div class="brand-mark">S</div>
         <div>
-          <p class="eyebrow">Dashboard Page</p>
+          <p class="eyebrow">Academic Hub</p>
           <h1>StudyMentor AI</h1>
         </div>
       </div>
       <nav class="nav">
         <button class="nav-link active" data-section="dashboard"><span>Home</span><span>Dashboard</span></button>
-        <button class="nav-link" data-section="study"><span>Learn</span><span>Study</span></button>
-        <button class="nav-link" data-section="progress"><span>Track</span><span>Progress</span></button>
-        <button class="nav-link" data-section="chat"><span>Ask AI</span><span>AI Mentor</span></button>
+        <button class="nav-link" data-section="study"><span>Learn</span><span>Study Modules</span></button>
+        <button class="nav-link" data-section="progress"><span>Track</span><span>Mastery & Progress</span></button>
+        <button class="nav-link" data-section="chat"><span>Ask AI</span><span>AI Mentor Chat</span></button>
       </nav>
       <div class="sidebar-footer">
         <a class="ghost-link" href="planning.html">Edit plan</a>
         <button id="themeToggle" class="ghost-button" type="button">Dark mode</button>
-        <button id="resetApp" class="text-button" type="button">Reset demo</button>
+        <button id="resetApp" class="text-button" type="button">New study session</button>
       </div>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Dashboard Page</p>
+          <p class="eyebrow">Study Dashboard</p>
           <h2 id="welcomeTitle">Welcome back</h2>
         </div>
         <div class="topbar-actions">
-          <div class="streak-pill"><span>Fire</span><strong id="streakCount">0</strong><span>day streak</span></div>
+          <div class="ai-status-pill" id="aiStatusPill" title="Click to view AI & Backend Settings">
+            <span class="status-dot"></span>
+            <span id="aiStatusText">AI Active</span>
+          </div>
+          <div class="streak-pill"><span>🔥</span><strong id="streakCount">0</strong><span>day streak</span></div>
+          <button id="aiConfigBtn" class="ghost-button" type="button">⚙️ AI Settings</button>
           <button id="authBtn" class="ghost-button" type="button">Sign in</button>
           <button id="startStudyBtn" class="primary-button" type="button">Start study</button>
         </div>
@@ -64,10 +68,10 @@
           <article class="glass-card">
             <div class="section-header">
               <div>
-                <p class="eyebrow">Mock AI Planner</p>
-                <h3>Daily study plan</h3>
+                <p class="eyebrow">Adaptive AI Planner</p>
+                <h3>Personalized Daily Schedule</h3>
               </div>
-              <button id="regeneratePlan" class="ghost-button" type="button">Regenerate</button>
+              <button id="regeneratePlan" class="ghost-button" type="button">✨ Rebalance with AI</button>
             </div>
             <div id="planList" class="plan-list"></div>
           </article>
@@ -89,8 +93,8 @@
           <article class="glass-card">
             <div class="section-header">
               <div>
-                <p class="eyebrow">Teaching + Testing</p>
-                <h3>Recommended topics</h3>
+                <p class="eyebrow">Deep Learning & Testing</p>
+                <h3>Curriculum Modules</h3>
               </div>
             </div>
             <div id="topicList" class="topic-list"></div>
@@ -136,9 +140,15 @@
             </div>
             <span class="badge" id="chatBadge">AI Online</span>
           </div>
+          <div class="chat-chips" id="chatChips">
+            <button type="button" class="chip-btn" data-prompt="Explain this concept with an everyday analogy.">💡 Analogy</button>
+            <button type="button" class="chip-btn" data-prompt="Give me 3 high-yield exam practice questions with hints.">📝 Practice</button>
+            <button type="button" class="chip-btn" data-prompt="Create a 45-minute Pomodoro focus sprint for my weakest subject.">⏱️ Sprint Plan</button>
+            <button type="button" class="chip-btn" data-prompt="Quiz me on this topic with 1 diagnostic question right now.">🎯 Test Me</button>
+          </div>
           <div id="chatMessages" class="chat-messages">
             <div class="chat-msg assistant">
-              <strong>StudyMentor AI:</strong> Hi! I'm your AI study assistant. Ask me questions about your subjects, request topic summaries, or practice problem walkthroughs!
+              <strong>StudyMentor AI:</strong> Hi! I'm your AI study assistant. Ask me anything about your syllabus, request step-by-step problem derivations, or tap any quick prompt above!
             </div>
           </div>
           <form id="chatForm" class="chat-form">
@@ -151,6 +161,32 @@
   </div>
 
   <div id="notification" class="notification hidden" aria-live="polite"></div>
+
+  <!-- AI Config Modal -->
+  <div id="aiConfigModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>AI & Backend Settings</h3>
+        <button id="closeAiConfigModal" class="ghost-button" type="button">✕</button>
+      </div>
+      <div class="auth-form" style="gap: 14px;">
+        <p style="font-size: 0.9rem; color: var(--text-muted, #9ca3af);">
+          StudyMentor AI connects to your deployed backend. You can also paste your personal <strong>Groq API key</strong> for live Llama 3.3 answers right in the browser.
+        </p>
+        <div class="form-group">
+          <label>Backend API URL</label>
+          <input type="text" id="configApiUrl" placeholder="https://your-service.onrender.com/api">
+          <small class="helper-text">Leave blank to auto-detect current domain.</small>
+        </div>
+        <div class="form-group">
+          <label>Groq API Key (Optional)</label>
+          <input type="password" id="configGroqKey" placeholder="gsk_...">
+          <small class="helper-text">Free key from <a href="https://console.groq.com/keys" target="_blank" style="color: #6366f1;">console.groq.com</a></small>
+        </div>
+        <button type="button" id="saveAiConfigBtn" class="primary-button" style="width: 100%; margin-top: 10px;">Save Settings</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Auth Modal -->
   <div id="authModal" class="modal-backdrop hidden">

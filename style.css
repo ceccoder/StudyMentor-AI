@@ -967,3 +967,114 @@ select:focus {
   color: var(--text, #fff);
   font-size: 0.95rem;
 }
+
+/* AI Status Pill */
+.ai-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.ai-status-pill:hover {
+  transform: scale(1.03);
+}
+.ai-status-pill.offline {
+  background: rgba(234, 179, 8, 0.12);
+  color: #ca8a04;
+  border-color: rgba(234, 179, 8, 0.3);
+}
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+.ai-status-pill.offline .status-dot {
+  background: #eab308;
+  box-shadow: 0 0 8px #eab308;
+}
+
+/* Quick Prompt Chips */
+.chat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.chip-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.12));
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  color: var(--text, #fff);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.chip-btn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
+  transform: translateY(-1px);
+}
+
+/* Interactive Study Plan Checkbox & Styling */
+.plan-card {
+  position: relative;
+  transition: all 0.25s ease;
+}
+.plan-card.completed {
+  opacity: 0.7;
+  border-left: 4px solid #22c55e;
+}
+.plan-card.completed h4,
+.plan-card.completed p {
+  text-decoration: line-through;
+}
+.plan-action-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.plan-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.plan-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #22c55e;
+  cursor: pointer;
+}
+
+/* Topic Module Card Interactive Enhancements */
+.explanation-card,
+.practice-card {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1));
+  padding: 16px;
+  margin-top: 14px;
+}
+.hint-box {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(234, 179, 8, 0.1);
+  border-left: 3px solid #eab308;
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+

@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="api-base-url" content="https://studymentor-api.onrender.com/api">
-  <title>StudyMentor AI | Planning</title>
+  <title>StudyMentor AI | Adaptive Planning</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,31 +22,32 @@
       <nav class="landing-actions">
         <a class="ghost-link" href="index.html">Landing</a>
         <a class="ghost-link" href="dashboard.html">Dashboard</a>
+        <button id="aiConfigBtn" class="ghost-button" type="button">⚙️ AI Settings</button>
         <button id="authBtn" class="ghost-button" type="button">Sign in</button>
       </nav>
     </header>
 
     <section class="planning-layout">
       <div class="planning-intro">
-        <p class="eyebrow">Planning Page</p>
-        <h2>Create your study blueprint.</h2>
+        <p class="eyebrow">Adaptive Planning</p>
+        <h2>Architect your high-impact study blueprint.</h2>
         <p>
-          Set your class, stream, subjects, study hours, and weak areas. This page stores your
-          study profile locally and sends you directly to the dashboard page.
+          Configure your target academic stream, daily available hours, and flagged subjects.
+          Our AI analyzes curriculum weightages to craft balanced, realistic focus blocks tailored to you.
         </p>
         <div class="planning-points">
           <div class="point-card glass-card">
-            <span>📚</span>
+            <span>⚡</span>
             <div>
-              <strong>Plans</strong>
-              <p>Converts your subjects into focused daily blocks.</p>
+              <strong>Adaptive Scheduling</strong>
+              <p>Dynamically allocates optimal time based on your weakest chapters.</p>
             </div>
           </div>
           <div class="point-card glass-card">
-            <span>🧭</span>
+            <span>🎯</span>
             <div>
-              <strong>Tracks</strong>
-              <p>Highlights weak areas before you start revising.</p>
+              <strong>Deliberate Practice</strong>
+              <p>Generates active recall checkpoints and actionable tasks for every block.</p>
             </div>
           </div>
         </div>
@@ -107,13 +107,39 @@
               <small class="helper-text">Only selected subjects can be marked as weak.</small>
             </label>
           </div>
-          <button class="primary-button" type="submit">Save Plan And Open Dashboard</button>
+          <button id="planSubmitBtn" class="primary-button" type="submit">✨ Generate AI Study Blueprint</button>
         </form>
       </section>
     </section>
   </main>
 
   <div id="notification" class="notification hidden" aria-live="polite"></div>
+
+  <!-- AI Config Modal -->
+  <div id="aiConfigModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>AI & Backend Settings</h3>
+        <button id="closeAiConfigModal" class="ghost-button" type="button">✕</button>
+      </div>
+      <div class="auth-form" style="gap: 14px;">
+        <p style="font-size: 0.9rem; color: var(--text-muted, #9ca3af);">
+          StudyMentor AI connects to your deployed backend. You can also paste your personal <strong>Groq API key</strong> for ultra-fast Llama 3.3 inference.
+        </p>
+        <div class="form-group">
+          <label>Backend API URL</label>
+          <input type="text" id="configApiUrl" placeholder="https://your-service.onrender.com/api">
+          <small class="helper-text">Leave blank to auto-detect the current server.</small>
+        </div>
+        <div class="form-group">
+          <label>Groq API Key (Optional)</label>
+          <input type="password" id="configGroqKey" placeholder="gsk_...">
+          <small class="helper-text">Free key from <a href="https://console.groq.com/keys" target="_blank" style="color: #6366f1;">console.groq.com</a></small>
+        </div>
+        <button type="button" id="saveAiConfigBtn" class="primary-button" style="width: 100%; margin-top: 10px;">Save Settings</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Auth Modal -->
   <div id="authModal" class="modal-backdrop hidden">

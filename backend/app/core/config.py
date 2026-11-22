@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # Groq (recommended - fast, free tier available)
     # Get from https://console.groq.com/keys
     GROQ_API_KEY: str = Field(default="", validation_alias="GROQ_API_KEY")
-    GROQ_MODEL: str = "llama-3.1-70b-versatile"
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
     GROQ_MAX_TOKENS: int = 8192
     GROQ_TEMPERATURE: float = 0.7
 

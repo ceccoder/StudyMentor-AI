@@ -5,7 +5,7 @@ from sqlalchemy import select, func, and_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.models import User, StudyProfile, SubjectProgress, StudyPlan, StudyPlanBlock, UserStreak
 from app.schemas.schemas import (
     StudyProfileCreate, StudyProfileUpdate, StudyProfileResponse,
@@ -212,95 +212,150 @@ plan_router = APIRouter(prefix="/plan", tags=["Study Plan"])
 @plan_router.post("/generate", response_model=StudyPlanResponse)
 async def generate_plan(
     target_date: Optional[date] = None,
+    profile_payload: Optional[dict] = None,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Generate AI study plan for a date."""
+    """Generate AI study plan for a date (works for both guests and authenticated users)."""
     if target_date is None:
         target_date = date.today()
-    
-    # Get profile
-    result = await db.execute(
-        select(StudyProfile).where(StudyProfile.user_id == current_user.id)
-    )
-    profile = result.scalar_one_or_none()
-    
-    if not profile:
-        raise HTTPException(status_code=400, detail="Create a study profile first")
-    
-    # Get progress
-    result = await db.execute(
-        select(SubjectProgress).where(SubjectProgress.user_id == current_user.id)
-    )
-    progress_list = result.scalars().all()
-    progress = {p.subject: {"mastery_percentage": p.mastery_percentage} for p in progress_list}
-    
-    # Generate AI plan
-    ai_result = await ai_service.generate_study_plan(
-        profile=profile.__dict__,
-        progress=progress,
-        weak_subjects=profile.weak_subjects
-    )
-    
-    # Deactivate old plans for this date
-    await db.execute(
-        update(StudyPlan)
-        .where(
-            and_(
-                StudyPlan.user_id == current_user.id,
-                func.date(StudyPlan.date) == target_date,
-                StudyPlan.is_active == True
+
+    if current_user:
+        # Get profile from DB
+        result = await db.execute(
+            select(StudyProfile).where(StudyProfile.user_id == current_user.id)
+        )
+        profile = result.scalar_one_or_none()
+        
+        if not profile and profile_payload:
+            profile = StudyProfile(
+                user_id=current_user.id,
+                name=profile_payload.get("name", "Student"),
+                class_level=profile_payload.get("class_level", "Class 12"),
+                stream=profile_payload.get("stream", "Science"),
+                study_hours_per_day=profile_payload.get("study_hours_per_day", 3),
+                subjects=profile_payload.get("subjects", ["Math", "Physics", "Chemistry"]),
+                weak_subjects=profile_payload.get("weak_subjects", [])
             )
+            db.add(profile)
+            await db.flush()
+        elif not profile:
+            raise HTTPException(status_code=400, detail="Create a study profile first")
+        
+        # Get progress
+        result = await db.execute(
+            select(SubjectProgress).where(SubjectProgress.user_id == current_user.id)
         )
-        .values(is_active=False)
-    )
-    
-    # Create new plan
-    plan = StudyPlan(
-        user_id=current_user.id,
-        date=datetime.combine(target_date, datetime.min.time()),
-        plan_data=ai_result["plan"],
-        generated_by_ai=True
-    )
-    db.add(plan)
-    await db.flush()
-    
-    # Create plan blocks
-    blocks = []
-    for idx, block_data in enumerate(ai_result["plan"].get("blocks", [])):
-        block = StudyPlanBlock(
-            plan_id=plan.id,
-            subject=block_data["subject"],
-            topic=block_data["topic"],
-            minutes=block_data["minutes"],
-            task_description=block_data["task_description"],
-            is_weak_subject=block_data.get("is_weak_subject", False),
-            order_index=idx
+        progress_list = result.scalars().all()
+        progress = {p.subject: {"mastery_percentage": p.mastery_percentage} for p in progress_list}
+        
+        # Generate AI plan
+        ai_result = await ai_service.generate_study_plan(
+            profile=profile.__dict__,
+            progress=progress,
+            weak_subjects=profile.weak_subjects
         )
-        db.add(block)
-        blocks.append(block)
-    
-    await db.commit()
-    await db.refresh(plan)
-    
-    # Log AI generation
-    from app.models.models import AIContentGeneration
-    ai_log = AIContentGeneration(
-        user_id=current_user.id,
-        generation_type="plan",
-        subject=", ".join(profile.subjects),
-        topic="Daily Plan",
-        prompt="Generated daily study plan",
-        response=str(ai_result["plan"]),
-        tokens_used=ai_result["tokens_used"],
-        model_used=ai_result["model_used"]
-    )
-    db.add(ai_log)
-    await db.commit()
-    
-    # Build response
-    plan.blocks = blocks
-    return plan
+        
+        # Deactivate old plans for this date
+        await db.execute(
+            update(StudyPlan)
+            .where(
+                and_(
+                    StudyPlan.user_id == current_user.id,
+                    func.date(StudyPlan.date) == target_date,
+                    StudyPlan.is_active == True
+                )
+            )
+            .values(is_active=False)
+        )
+        
+        # Create new plan
+        plan = StudyPlan(
+            user_id=current_user.id,
+            date=datetime.combine(target_date, datetime.min.time()),
+            plan_data=ai_result["plan"],
+            generated_by_ai=True
+        )
+        db.add(plan)
+        await db.flush()
+        
+        # Create plan blocks
+        blocks = []
+        for idx, block_data in enumerate(ai_result["plan"].get("blocks", [])):
+            block = StudyPlanBlock(
+                plan_id=plan.id,
+                subject=block_data["subject"],
+                topic=block_data["topic"],
+                minutes=block_data["minutes"],
+                task_description=block_data["task_description"],
+                is_weak_subject=block_data.get("is_weak_subject", False),
+                order_index=idx
+            )
+            db.add(block)
+            blocks.append(block)
+        
+        await db.commit()
+        await db.refresh(plan)
+        
+        from app.models.models import AIContentGeneration
+        ai_log = AIContentGeneration(
+            user_id=current_user.id,
+            generation_type="plan",
+            subject=", ".join(profile.subjects),
+            topic="Daily Plan",
+            prompt="Generated daily study plan",
+            response=str(ai_result["plan"]),
+            tokens_used=ai_result["tokens_used"],
+            model_used=ai_result["model_used"]
+        )
+        db.add(ai_log)
+        await db.commit()
+        
+        plan.blocks = blocks
+        return plan
+    else:
+        # Transient AI plan for guest sessions
+        guest_profile = profile_payload or {
+            "name": "Student",
+            "class_level": "Class 12",
+            "stream": "Science",
+            "study_hours_per_day": 3,
+            "subjects": ["Math", "Physics", "Chemistry"],
+            "weak_subjects": ["Physics"]
+        }
+        
+        ai_result = await ai_service.generate_study_plan(
+            profile=guest_profile,
+            progress={},
+            weak_subjects=guest_profile.get("weak_subjects", [])
+        )
+        
+        blocks_data = []
+        for idx, b in enumerate(ai_result["plan"].get("blocks", [])):
+            blocks_data.append({
+                "id": idx + 1,
+                "plan_id": 1,
+                "subject": b["subject"],
+                "topic": b["topic"],
+                "minutes": b["minutes"],
+                "task_description": b["task_description"],
+                "is_weak_subject": b.get("is_weak_subject", False),
+                "order_index": idx,
+                "is_completed": False,
+                "completed_at": None,
+                "created_at": datetime.utcnow()
+            })
+            
+        return {
+            "id": 1,
+            "user_id": 0,
+            "date": datetime.combine(target_date, datetime.min.time()),
+            "plan_data": ai_result["plan"],
+            "generated_by_ai": True,
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "blocks": blocks_data
+        }
 
 
 @plan_router.get("/today", response_model=DailyPlanResponse)

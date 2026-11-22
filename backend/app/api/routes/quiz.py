@@ -8,7 +8,7 @@ from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_current_user_optional
 from app.models.models import User, Quiz, QuizAttempt, SubjectProgress
 from app.schemas.schemas import (
     QuizCreate, QuizResponse, QuizTakeResponse, QuizAttemptCreate, QuizAttemptResponse,
@@ -48,19 +48,21 @@ async def generate_quiz(
     difficulty: str = "medium",
     num_questions: int = 5,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
-    """Generate a quiz using AI for a specific topic."""
+    """Generate a quiz using AI for a specific topic (accessible to guests and users)."""
+    mastery = 0
+    weak_areas = []
     
-    # Get user's progress for context
-    result = await db.execute(
-        select(SubjectProgress).where(
-            and_(SubjectProgress.user_id == current_user.id, SubjectProgress.subject == subject)
+    if current_user:
+        result = await db.execute(
+            select(SubjectProgress).where(
+                and_(SubjectProgress.user_id == current_user.id, SubjectProgress.subject == subject)
+            )
         )
-    )
-    progress = result.scalar_one_or_none()
-    mastery = progress.mastery_percentage if progress else 0
-    weak_areas = progress.weak_areas if progress else []
+        progress = result.scalar_one_or_none()
+        mastery = progress.mastery_percentage if progress else 0
+        weak_areas = progress.weak_areas if progress else []
     
     # Generate quiz with AI
     ai_result = await ai_service.generate_quiz(
@@ -71,35 +73,45 @@ async def generate_quiz(
         context={"mastery": mastery, "weak_areas": weak_areas}
     )
     
-    # Save quiz
-    quiz = Quiz(
-        subject=subject,
-        topic=topic,
-        difficulty=difficulty,
-        questions=ai_result["quiz"]["questions"],
-        generated_by_ai=True
-    )
-    db.add(quiz)
-    await db.flush()
-    
-    # Log AI generation
-    from app.models.models import AIContentGeneration
-    ai_log = AIContentGeneration(
-        user_id=current_user.id,
-        generation_type="quiz",
-        subject=subject,
-        topic=topic,
-        prompt=f"Generate {difficulty} quiz for {topic}",
-        response=str(ai_result["quiz"]),
-        tokens_used=ai_result["tokens_used"],
-        model_used=ai_result["model_used"]
-    )
-    db.add(ai_log)
-    
-    await db.commit()
-    await db.refresh(quiz)
-    
-    return quiz
+    if current_user:
+        # Save quiz to DB
+        quiz = Quiz(
+            subject=subject,
+            topic=topic,
+            difficulty=difficulty,
+            questions=ai_result["quiz"]["questions"],
+            generated_by_ai=True
+        )
+        db.add(quiz)
+        await db.flush()
+        
+        from app.models.models import AIContentGeneration
+        ai_log = AIContentGeneration(
+            user_id=current_user.id,
+            generation_type="quiz",
+            subject=subject,
+            topic=topic,
+            prompt=f"Generate {difficulty} quiz for {topic}",
+            response=str(ai_result["quiz"]),
+            tokens_used=ai_result["tokens_used"],
+            model_used=ai_result["model_used"]
+        )
+        db.add(ai_log)
+        await db.commit()
+        await db.refresh(quiz)
+        return quiz
+    else:
+        # Return transient quiz for guests
+        return {
+            "id": 1,
+            "subject": subject,
+            "topic": topic,
+            "difficulty": difficulty,
+            "questions": ai_result["quiz"]["questions"],
+            "generated_by_ai": True,
+            "source_material": None,
+            "created_at": datetime.utcnow()
+        }
 
 
 @router.get("", response_model=List[QuizResponse])
